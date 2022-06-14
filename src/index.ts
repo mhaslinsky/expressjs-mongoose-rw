@@ -6,6 +6,9 @@ import "dotenv/config";
 
 const app = express();
 app.use(express.static(__dirname + "/public"));
+app.get("/", (req, res, next) => {
+  res.send("welcome").status(200);
+});
 const expressServer = app.listen(process.env.PORT, () => {
   console.log(`socket.io listening on PORT ${process.env.PORT}`);
 });

@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { Server } from "socket.io";
 import Namespace from "./classes/Namespace";
 import namespaces from "./data/namespaces";
@@ -6,8 +6,8 @@ import "dotenv/config";
 
 const app = express();
 app.use(express.static(__dirname + "/public"));
-app.get("/", (req, res, next) => {
-  res.send("welcome").status(200);
+app.get("/", (req: Request, res: Response, next: NextFunction) => {
+  res.status(200).json({ message: "welcome" });
 });
 const expressServer = app.listen(process.env.PORT, () => {
   console.log(`socket.io listening on PORT ${process.env.PORT}`);

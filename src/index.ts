@@ -14,15 +14,17 @@ const expressServer = app.listen(process.env.PORT, () => {
 });
 const io = new Server(expressServer, { cors: { origin: "*" } });
 
+let nsData = namespaces.map((ns) => {
+  return { id: ns.id, img: ns.img, endpoint: ns.endpoint };
+});
+
 io.on("connection", (socket) => {
-  let nsData = namespaces.map((ns) => {
-    return { id: ns.id, img: ns.img, endpoint: ns.endpoint };
-  });
   socket.emit("nsList", nsData);
 });
 
 namespaces.forEach((ns) => {
   io.of(ns.endpoint).on("connection", (socket) => {
+    socket.emit("nsList", nsData);
     const username = socket.handshake.query.username;
     socket.emit("nsRoomLoad", ns.rooms);
     //when someone emits a join request, we take the room they want to join
@@ -33,7 +35,12 @@ namespaces.forEach((ns) => {
       const nsRoom = ns.rooms.find((room) => {
         return room.roomTitle === roomToJoin;
       });
-      socket.emit("historyGET", nsRoom!.history);
+      if (nsRoom) {
+        socket.emit("historyGET", nsRoom?.history);
+      } else {
+        socket.emit("historyGET", []);
+      }
+
       updateUsersInRoom(ns, roomToJoin);
     });
     socket.on("leaveRoom", async (roomToLeave) => {

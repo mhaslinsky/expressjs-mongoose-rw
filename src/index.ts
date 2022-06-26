@@ -52,8 +52,7 @@ namespaces.forEach((ns) => {
         text: msg.text,
         time: Date.now(),
         username: username,
-        avatar:
-          "https://clinicforspecialchildren.org/wp-content/uploads/2016/08/avatar-placeholder.gif",
+        avatar: msg.img || "https://clinicforspecialchildren.org/wp-content/uploads/2016/08/avatar-placeholder.gif",
       };
       const roomTitle = Array.from(socket.rooms)[1];
       //need to use room string to find room object of same title in ns object

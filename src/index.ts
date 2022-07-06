@@ -3,6 +3,13 @@ import { Server } from "socket.io";
 import Namespace from "./classes/Namespace";
 import namespaces from "./data/namespaces";
 import "dotenv/config";
+import { Socket } from "dgram";
+
+interface user {
+  id: string;
+  username: string;
+  image: string;
+}
 
 const app = express();
 app.use(express.static(__dirname + "/public"));
@@ -14,12 +21,41 @@ const expressServer = app.listen(process.env.PORT, () => {
 });
 const io = new Server(expressServer, { cors: { origin: "*" } });
 
+let connectedUsers: user[] = [];
+
 let nsData = namespaces.map((ns) => {
   return { id: ns.id, img: ns.img, endpoint: ns.endpoint };
 });
 
-io.on("connection", (socket) => {
+io.of("/").on("connection", (socket) => {
   socket.emit("nsList", nsData);
+  socket.on("login", async (username: string, image?: string) => {
+    if (!username) return;
+    console.log(socket.id + " logged in" + " as " + username);
+    connectedUsers.push({
+      id: socket.id,
+      username: username,
+      image: image || "https://clinicforspecialchildren.org/wp-content/uploads/2016/08/avatar-placeholder.gif",
+    });
+    console.log(connectedUsers);
+    io.emit("connectedUsers", connectedUsers);
+  });
+  socket.on("logout", async (username?: string) => {
+    console.log(username + " with " + socket.id + " logged out");
+    connectedUsers = connectedUsers.filter((user) => {
+      return socket.id !== user.id;
+    });
+    console.log(connectedUsers);
+    io.emit("connectedUsers", connectedUsers);
+  });
+
+  socket.on("disconnect", () => {
+    connectedUsers = connectedUsers.filter((user) => {
+      return socket.id !== user.id;
+    });
+    console.log(connectedUsers);
+    io.emit("connectedUsers", connectedUsers);
+  });
 });
 
 namespaces.forEach((ns) => {
@@ -40,7 +76,6 @@ namespaces.forEach((ns) => {
       } else {
         socket.emit("historyGET", []);
       }
-
       updateUsersInRoom(ns, roomToJoin);
     });
     socket.on("leaveRoom", async (roomToLeave) => {
@@ -62,12 +97,21 @@ namespaces.forEach((ns) => {
       nsRoom!.addMessage(fullMsg);
       io.of(ns.endpoint).to(roomTitle).emit("messageToClients", fullMsg);
     });
+
+    socket.on("disconnect", (reason) => {
+      // console.log("socketid: " + socket.id + " left namespace " + ns.nsTitle + " for reason: " + reason);
+      // updateUsersInRoom(ns, roomTitle);
+    });
   });
 });
 
 async function updateUsersInRoom(ns: Namespace, room: string) {
   //returns set of all sockets connected to room in ns
   const ids = await io.of(ns.endpoint).in(room).allSockets();
+  const iterator = ids.entries();
+  for (const [key, value] of iterator) {
+    // console.log(key, value);
+  }
   const numOfUsersConnected = ids.size;
   io.of(ns.endpoint).to(room).emit("updateMembers", numOfUsersConnected);
 }

@@ -3,7 +3,6 @@ import { Server } from "socket.io";
 import Namespace from "./classes/Namespace";
 import namespaces from "./data/namespaces";
 import "dotenv/config";
-import { Socket } from "dgram";
 
 interface user {
   id: string;
@@ -56,7 +55,6 @@ io.of("/").on("connection", (socket) => {
 namespaces.forEach((ns) => {
   io.of(ns.endpoint).on("connection", (socket) => {
     socket.emit("nsList", nsData);
-    const username = socket.handshake.query.username;
     socket.emit("nsRoomLoad", ns.rooms);
     //when someone emits a join request, we take the room they want to join
     //and pass back the number of users in it
@@ -81,7 +79,7 @@ namespaces.forEach((ns) => {
       const fullMsg = {
         text: msg.text,
         time: Date.now(),
-        username: username,
+        username: msg.username,
         avatar: msg.img || "https://clinicforspecialchildren.org/wp-content/uploads/2016/08/avatar-placeholder.gif",
       };
       const roomTitle = Array.from(socket.rooms)[1];
@@ -93,9 +91,11 @@ namespaces.forEach((ns) => {
       io.of(ns.endpoint).to(roomTitle).emit("messageToClients", fullMsg);
     });
 
-    socket.on("disconnecting", (reason) => {
+    socket.on("disconnecting", async (reason) => {
       const roomTitle = Array.from(socket.rooms)[1];
-      updateUsersInRoom(ns, roomTitle);
+      const ids = await io.of(ns.endpoint).in(roomTitle).allSockets();
+      const numOfUsersConnected = ids.size - 1;
+      io.of(ns.endpoint).to(roomTitle).emit("updateMembers", numOfUsersConnected);
     });
   });
 });
@@ -104,6 +104,5 @@ async function updateUsersInRoom(ns: Namespace, room: string) {
   //returns set of all sockets connected to room in ns
   const ids = await io.of(ns.endpoint).in(room).allSockets();
   const numOfUsersConnected = ids.size;
-  console.log("updating users in room " + room + ": " + numOfUsersConnected);
   io.of(ns.endpoint).to(room).emit("updateMembers", numOfUsersConnected);
 }

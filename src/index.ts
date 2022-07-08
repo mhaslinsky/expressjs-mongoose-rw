@@ -30,6 +30,8 @@ io.of("/").on("connection", (socket) => {
   socket.emit("nsList", nsData);
   socket.on("login", async (username: string, image?: string) => {
     if (!username) return;
+    let checkloggedIn = connectedUsers.find((user) => user.username === username);
+    if (checkloggedIn) return;
     connectedUsers.push({
       id: socket.id,
       username: username,

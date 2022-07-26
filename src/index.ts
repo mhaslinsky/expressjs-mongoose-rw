@@ -16,7 +16,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({ message: "welcome" });
 });
 const expressServer = app.listen(process.env.PORT, () => {
-  console.log(`socket.io listening on PORT ${process.env.PORT}`);
+  console.log(`socket.io listening on $PORT ${process.env.PORT}`);
 });
 const io = new Server(expressServer, { cors: { origin: "*" } });
 
